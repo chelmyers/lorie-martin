@@ -1,0 +1,293 @@
+---
+layout: default
+---
+
+<!-- Hero Section -->
+<section class="hero">
+    <h1>{{ site.title }}</h1>
+    <p class="tagline">{{ site.tagline }}</p>
+    <a href="#music" class="btn">Browse Music</a>
+</section>
+
+<!-- Choral Music Catalog -->
+<section class="catalog" id="music">
+    <div class="container">
+        <h2 class="section-title">Choral Music</h2>
+        <p class="coming-soon">Piano music collections coming soon</p>
+        
+        <div id="music-catalog">
+            <p class="loading">Loading catalog...</p>
+        </div>
+    </div>
+</section>
+
+<!-- About Section -->
+<section class="about" id="about">
+    <div class="container">
+        <h2 class="section-title">About My Music</h2>
+        <div class="about-content">
+            <p>I write choral music that serves real ensembles—church choirs, community groups, and school programs looking for repertoire that's both substantive and accessible.</p>
+            
+            <p>Each piece is crafted with attention to singable vocal lines, meaningful text setting, and the practical realities of rehearsal and performance. My goal is to create music that's rewarding for singers and resonant for listeners.</p>
+            
+            <p>What began as writing for the specific needs of my own musical community evolved into a deeper commitment to creating works that other directors and choirs might find useful. I'm drawn to texts that offer both emotional depth and spiritual substance, and I work to balance musical interest with practical singability.</p>
+            
+            <p>Every composition goes through real-world testing—sung, refined, and shaped by the experience of rehearsal and performance. I write for the choirs I know: ensembles with mixed experience levels, limited rehearsal time, and a desire for music that's both meaningful and achievable.</p>
+            
+            <p>All works are available through J.W. Pepper for purchase and licensing.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Quote Section -->
+<section class="quote-section" id="testimonials">
+    <div class="container">
+        <div id="quote-container">
+            <!-- Quotes will be loaded from Google Sheets if available -->
+        </div>
+    </div>
+</section>
+
+<!-- Contact Section -->
+<!-- <section class="contact" id="contact">
+    <div class="container">
+        <h2 class="section-title">Contact</h2>
+        <div class="contact-content">
+            <div class="contact-intro">
+                <p>Questions about a specific piece? Want to know if a work would suit your choir's needs? I'm happy to help.</p>
+            </div>
+            
+            <form class="contact-form" action="https://formspree.io/f/YOUR_FORM_ID" method="POST">
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="organization">Choir/Organization</label>
+                    <input type="text" id="organization" name="organization">
+                </div>
+                
+                <div class="form-group">
+                    <label for="message">Message</label>
+                    <textarea id="message" name="message" required></textarea>
+                </div>
+                
+                <button type="submit" class="btn">Send Message</button>
+            </form>
+            
+            <div class="purchase-info">
+                <h3>Purchase and Licensing</h3>
+                <p>All works are available through J.W. Pepper</p>
+                <a href="#" class="btn" target="_blank">Visit J.W. Pepper Catalog →</a>
+            </div>
+        </div>
+    </div>
+</section> -->
+
+<!-- JavaScript to load data from Google Sheets -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sheetId = '{{ site.google_sheet_id }}';
+    const gidSettings = '{{ site.gid_site_settings }}';
+    const gidMusic = '{{ site.gid_music_catalog }}';
+    const gidTestimonials = '{{ site.gid_testimonials }}';
+    
+    if (!sheetId || sheetId === 'D0ZhJwfVE4xx2fC83wjgEQwuTkYaZDswiJ2ucVvZpEk') {
+        document.getElementById('music-catalog').innerHTML = '<p class="error">Google Sheet not configured. Please update _config.yml with your Google Sheet ID and gid values.</p>';
+        return;
+    }
+    
+    // Load data from multiple tabs using their specific gid values
+    Promise.all([
+        fetchSheetTab(sheetId, gidSettings),     // Tab: Site Settings
+        fetchSheetTab(sheetId, gidMusic),        // Tab: Music Catalog
+        fetchSheetTab(sheetId, gidTestimonials)  // Tab: Testimonials
+    ])
+    .then(([siteSettings, musicPieces, testimonials]) => {
+        applySiteSettings(siteSettings);
+        renderMusicCatalog(musicPieces);
+        renderQuotes(testimonials);
+    })
+    .catch(error => {
+        console.error('Error loading data:', error);
+        document.getElementById('music-catalog').innerHTML = '<p class="error">Error loading catalog. Please check your Google Sheet settings and make sure all three tabs exist and are published.</p>';
+    });
+});
+
+function fetchSheetTab(sheetId, gid) {
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+    return fetch(csvUrl)
+        .then(response => response.text())
+        .then(data => parseCSV(data));
+}
+
+function parseCSV(csv) {
+    const lines = csv.split('\n');
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    const rows = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+        if (lines[i].trim() === '') continue;
+        
+        // Handle CSV parsing with quoted fields
+        const values = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let char of lines[i]) {
+            if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+                values.push(current.trim());
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+        values.push(current.trim());
+        
+        const row = {};
+        headers.forEach((header, index) => {
+            row[header] = values[index] ? values[index].replace(/^"|"$/g, '') : '';
+        });
+        
+        rows.push(row);
+    }
+    
+    return rows;
+}
+
+function applySiteSettings(settings) {
+    settings.forEach(setting => {
+        const key = setting.key || setting.setting_name;
+        const value = setting.value || setting.content;
+        
+        if (!key || !value) return;
+        
+        // Update site title
+        if (key === 'site_title') {
+            const titleElements = document.querySelectorAll('.hero h1, .logo');
+            titleElements.forEach(el => el.textContent = value);
+        }
+        
+        // Update tagline
+        if (key === 'tagline') {
+            const tagline = document.querySelector('.hero .tagline');
+            if (tagline) tagline.textContent = value;
+        }
+        
+        // Update hero button
+        if (key === 'hero_button_text') {
+            const btn = document.querySelector('.hero .btn');
+            if (btn) btn.textContent = value;
+        }
+        
+        // Update about section
+        if (key === 'about_title') {
+            const aboutTitle = document.querySelector('.about .section-title');
+            if (aboutTitle) aboutTitle.textContent = value;
+        }
+        
+        if (key === 'about_content') {
+            const aboutContent = document.querySelector('.about-content');
+            if (aboutContent) {
+                // Split by double line breaks to create paragraphs
+                const paragraphs = value.split('\n\n').filter(p => p.trim());
+                aboutContent.innerHTML = paragraphs.map(p => `<p>${p.trim()}</p>`).join('');
+            }
+        }
+        
+        // Update catalog subtitle
+        if (key === 'catalog_subtitle') {
+            const subtitle = document.querySelector('.coming-soon');
+            if (subtitle) subtitle.textContent = value;
+        }
+        
+        // Update contact section
+        if (key === 'contact_title') {
+            const contactTitle = document.querySelector('.contact .section-title');
+            if (contactTitle) contactTitle.textContent = value;
+        }
+        
+        if (key === 'contact_intro') {
+            const contactIntro = document.querySelector('.contact-intro p');
+            if (contactIntro) contactIntro.textContent = value;
+        }
+        
+        // Update purchase section
+        if (key === 'purchase_title') {
+            const purchaseTitle = document.querySelector('.purchase-info h3');
+            if (purchaseTitle) purchaseTitle.textContent = value;
+        }
+        
+        if (key === 'purchase_text') {
+            const purchaseText = document.querySelector('.purchase-info p');
+            if (purchaseText) purchaseText.textContent = value;
+        }
+        
+        if (key === 'jw_pepper_catalog_link') {
+            const catalogLink = document.querySelector('.purchase-info .btn');
+            if (catalogLink && value) catalogLink.href = value;
+        }
+    });
+}
+
+function renderMusicCatalog(pieces) {
+    const container = document.getElementById('music-catalog');
+    
+    if (pieces.length === 0) {
+        container.innerHTML = '<p class="error">No pieces found in the catalog.</p>';
+        return;
+    }
+    
+    let html = '';
+    pieces.forEach(piece => {
+        if (!piece.title) return; // Skip empty rows
+        
+        html += `
+            <div class="catalog-item">
+                <h3>${piece.title}</h3>
+                <div class="catalog-details">${piece.voicing_tag || ''} | Duration: ${piece.duration || ''}</div>
+                <p class="catalog-description">${piece.description || ''}</p>
+                <div class="catalog-info">
+                    <p><strong>Voicing:</strong> ${piece.voicing_details || ''}</p>
+                    <p><strong>Ideal for:</strong> ${piece.ideal_for || ''}</p>
+                </div>
+                ${piece.jw_pepper_link ? `<a href="${piece.jw_pepper_link}" class="work-link" target="_blank">View on J.W. Pepper →</a>` : ''}
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function renderQuotes(quotes) {
+    const container = document.getElementById('quote-container');
+    
+    if (quotes.length === 0 || !quotes.some(q => q.quote)) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    let html = '<blockquote class="testimonial-quote">';
+    quotes.forEach(quoteRow => {
+        if (!quoteRow.quote) return; // Skip empty rows
+        
+        html += `
+            <div class="quote-item">
+                <p class="quote-text">${quoteRow.quote}</p>
+                <cite class="quote-author">— ${quoteRow.attribution || ''}</cite>
+            </div>
+        `;
+    });
+    html += '</blockquote>';
+    
+    container.innerHTML = html;
+}
+</script>

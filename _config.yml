@@ -1,0 +1,30 @@
+# Site settings
+title: Lorie Martin
+tagline: Choral Music for Worship and Concert
+description: Choral compositions by Lorie Martin
+url: "https://chelmyers.github.io"
+baseurl: "/lorie-martin"
+
+# Google Sheets API settings
+# Instructions: 
+# 1. Create a Google Sheet with your music catalog
+# 2. Publish it to the web (File > Share > Publish to web > Entire Document > CSV)
+# 3. Get the sheet ID from the URL and paste it here
+google_sheet_id: "1D0ZhJwfVE4xx2fC83wjgEQwuTkYaZDswiJ2ucVvZpEk"
+gid_site_settings: "1904739945"  # Replace with actual gid from Site Settings tab URL
+gid_music_catalog: "1344375416"  # Replace with actual gid from Music Catalog tab URL  
+gid_testimonials: "2094508465"   # Replace with actual gid from Testimonials tab URL
+
+# Build settings
+markdown: kramdown
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+
+# Exclude from processing
+exclude:
+  - README.md
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor
