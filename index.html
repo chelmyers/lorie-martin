@@ -26,15 +26,7 @@ layout: default
     <div class="container">
         <h2 class="section-title">About My Music</h2>
         <div class="about-content">
-            <p>I write choral music that serves real ensembles—church choirs, community groups, and school programs looking for repertoire that's both substantive and accessible.</p>
-            
-            <p>Each piece is crafted with attention to singable vocal lines, meaningful text setting, and the practical realities of rehearsal and performance. My goal is to create music that's rewarding for singers and resonant for listeners.</p>
-            
-            <p>What began as writing for the specific needs of my own musical community evolved into a deeper commitment to creating works that other directors and choirs might find useful. I'm drawn to texts that offer both emotional depth and spiritual substance, and I work to balance musical interest with practical singability.</p>
-            
-            <p>Every composition goes through real-world testing—sung, refined, and shaped by the experience of rehearsal and performance. I write for the choirs I know: ensembles with mixed experience levels, limited rehearsal time, and a desire for music that's both meaningful and achievable.</p>
-            
-            <p>All works are available through J.W. Pepper for purchase and licensing.</p>
+            <p>Loading...</p>
         </div>
     </div>
 </section>
@@ -128,40 +120,57 @@ function fetchSheetTab(sheetId, gid) {
 }
 
 function parseCSV(csv) {
-    const lines = csv.split('\n');
-    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
     const rows = [];
+    let currentRow = [];
+    let currentField = '';
+    let inQuotes = false;
     
-    for (let i = 1; i < lines.length; i++) {
-        if (lines[i].trim() === '') continue;
+    for (let i = 0; i < csv.length; i++) {
+        const char = csv[i];
+        const nextChar = csv[i + 1];
         
-        // Handle CSV parsing with quoted fields
-        const values = [];
-        let current = '';
-        let inQuotes = false;
-        
-        for (let char of lines[i]) {
-            if (char === '"') {
-                inQuotes = !inQuotes;
-            } else if (char === ',' && !inQuotes) {
-                values.push(current.trim());
-                current = '';
+        if (char === '"') {
+            if (inQuotes && nextChar === '"') {
+                currentField += '"';
+                i++; // Skip escaped quote
             } else {
-                current += char;
+                inQuotes = !inQuotes;
             }
+        } else if (char === ',' && !inQuotes) {
+            currentRow.push(currentField);
+            currentField = '';
+        } else if (char === '\n' && !inQuotes) {
+            currentRow.push(currentField);
+            if (currentRow.length > 0) rows.push(currentRow);
+            currentRow = [];
+            currentField = '';
+        } else {
+            currentField += char;
         }
-        values.push(current.trim());
-        
-        const row = {};
-        headers.forEach((header, index) => {
-            row[header] = values[index] ? values[index].replace(/^"|"$/g, '') : '';
-        });
-        
-        rows.push(row);
     }
     
-    return rows;
+    // Don't forget last field and row
+    currentRow.push(currentField);
+    if (currentRow.length > 0) rows.push(currentRow);
+    
+    // Convert to objects
+    const headers = rows[0];
+    const data = [];
+    
+    for (let i = 1; i < rows.length; i++) {
+        const obj = {};
+        headers.forEach((header, index) => {
+            let value = rows[i][index] || '';
+            // Convert newlines to <br> and clean up
+            value = value.replace(/\n/g, '<br>').replace(/\r/g, '');
+            obj[header] = value;
+        });
+        data.push(obj);
+    }
+    
+    return data;
 }
+
 
 function applySiteSettings(settings) {
     settings.forEach(setting => {
