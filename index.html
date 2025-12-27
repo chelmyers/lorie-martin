@@ -250,11 +250,14 @@ function renderMusicCatalog(pieces) {
     pieces.forEach(piece => {
         if (!piece.title) return; // Skip empty rows
         
+        // Handle multi-line descriptions
+        const description = (piece.description || '').replace(/\n/g, ' ');
+        
         html += `
             <div class="catalog-item">
                 <h3>${piece.title}</h3>
                 <div class="catalog-details">${piece.voicing_tag || ''} | Duration: ${piece.duration || ''}</div>
-                <p class="catalog-description">${piece.description || ''}</p>
+                <p class="catalog-description">${description}</p>
                 <div class="catalog-info">
                     <p><strong>Voicing:</strong> ${piece.voicing_details || ''}</p>
                     <p><strong>Ideal for:</strong> ${piece.ideal_for || ''}</p>
