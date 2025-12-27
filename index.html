@@ -139,30 +139,41 @@ function parseCSV(csv) {
         } else if (char === ',' && !inQuotes) {
             currentRow.push(currentField);
             currentField = '';
-        } else if (char === '\n' && !inQuotes) {
-            currentRow.push(currentField);
-            if (currentRow.length > 0) rows.push(currentRow);
-            currentRow = [];
-            currentField = '';
-        } else {
+        } else if ((char === '\n' || char === '\r') && !inQuotes) {
+            // Handle line endings (\n or \r\n)
+            if (char === '\r' && nextChar === '\n') {
+                i++; // Skip the \n in \r\n
+            }
+            if (currentField || currentRow.length > 0) {
+                currentRow.push(currentField);
+                rows.push(currentRow);
+                currentRow = [];
+                currentField = '';
+            }
+        } else if (char !== '\r' || inQuotes) {
+            // Skip \r outside quotes, but keep it inside quotes
             currentField += char;
         }
     }
     
     // Don't forget last field and row
-    currentRow.push(currentField);
-    if (currentRow.length > 0) rows.push(currentRow);
+    if (currentField || currentRow.length > 0) {
+        currentRow.push(currentField);
+        rows.push(currentRow);
+    }
     
     // Convert to objects
-    const headers = rows[0];
+    const headers = rows[0].map(h => h.trim());
     const data = [];
     
     for (let i = 1; i < rows.length; i++) {
+        if (rows[i].length === 0) continue; // Skip empty rows
+        
         const obj = {};
         headers.forEach((header, index) => {
             let value = rows[i][index] || '';
-            // Convert newlines to <br> and clean up
-            value = value.replace(/\n/g, '<br>').replace(/\r/g, '');
+            // Convert newlines to <br> and remove remaining carriage returns
+            value = value.replace(/\r\n/g, '<br>').replace(/\n/g, '<br>').replace(/\r/g, '');
             obj[header] = value;
         });
         data.push(obj);
